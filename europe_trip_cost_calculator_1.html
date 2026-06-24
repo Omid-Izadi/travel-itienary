@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europe Trip Cost Calculator</title>
+<style>
+  :root{
+    --bg:#faf7f0; --card:#ffffff; --ink:#23201b; --muted:#7d756a;
+    --line:#e8e1d4; --teal:#0f766e; --teal-soft:#d7ece9; --amber:#b45309;
+    --amber-soft:#fde7cf; --red:#b91c1c; --green:#15803d; --shadow:0 1px 3px rgba(40,30,15,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:820px;margin:0 auto;padding:20px 16px 80px}
+  header h1{font-size:1.55rem;margin:0 0 4px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:.92rem}
+
+  /* sticky summary */
+  .summary{position:sticky;top:0;z-index:20;margin:16px 0 18px;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .sum-top{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 18px;background:linear-gradient(180deg,#103f3a,#0f766e);color:#fff}
+  .sum-top .lab{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;opacity:.85}
+  .sum-top .val{font-size:1.7rem;font-weight:700;line-height:1}
+  .sum-top .per{font-size:.74rem;opacity:.8;margin-top:2px}
+  .bar-wrap{padding:12px 18px 14px}
+  .bar-meta{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:6px}
+  .bar{height:9px;background:#eee7d9;border-radius:6px;overflow:hidden}
+  .bar > i{display:block;height:100%;width:0;background:var(--teal);border-radius:6px;transition:width .25s ease, background .25s}
+  .bar.over > i{background:var(--red)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;padding:0 18px 14px}
+  button.ctl{font:inherit;font-size:.82rem;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:7px 12px;border-radius:9px;cursor:pointer;transition:.15s}
+  button.ctl:hover{background:#f4efe4}
+  button.ctl.primary{background:var(--teal-soft);border-color:#bcdcd7;color:#0c5a53}
+  .toggle{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.82rem;color:var(--muted)}
+  .switch{position:relative;width:40px;height:22px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#d9d1c2;border-radius:22px;transition:.2s;cursor:pointer}
+  .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .switch input:checked + .slider{background:var(--teal)}
+  .switch input:checked + .slider:before{transform:translateX(18px)}
+
+  /* city cards */
+  .city{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+  .city > h2{margin:0;padding:13px 16px;font-size:1.05rem;display:flex;align-items:center;gap:9px;
+    border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+  .city > h2 .dates{font-size:.78rem;color:var(--muted);font-weight:400;margin-left:auto;text-align:right}
+  .city > h2 .sub{font-size:.74rem;color:var(--teal);font-weight:600}
+  .rows{padding:4px 6px 8px}
+  .row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s}
+  .row:hover{background:#f7f3ea}
+  .row input{appearance:none;-webkit-appearance:none;width:20px;height:20px;border:2px solid #c9c0b0;
+    border-radius:6px;flex:none;cursor:pointer;position:relative;transition:.15s}
+  .row input:checked{background:var(--teal);border-color:var(--teal)}
+  .row input:checked:after{content:"";position:absolute;left:5px;top:1px;width:6px;height:11px;
+    border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+  .row .name{flex:1;font-size:.93rem}
+  .row .badge{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    padding:2px 7px;border-radius:20px;flex:none}
+  .b-rec{background:var(--teal-soft);color:#0c5a53}
+  .b-opt{background:var(--amber-soft);color:var(--amber)}
+  .b-skip{background:#f6dada;color:var(--red)}
+  .row .cost{font-variant-numeric:tabular-nums;font-weight:600;font-size:.9rem;min-width:54px;text-align:right;flex:none}
+  .row .cost.free{color:var(--green);font-weight:600}
+  .row.off .name{color:var(--muted)}
+
+  /* trip panel */
+  #tripPanel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+    padding:6px 16px 14px;margin-bottom:14px}
+  #tripPanel h2{font-size:1.05rem;margin:12px 0 4px}
+  #tripPanel p.note{margin:0 0 8px;font-size:.8rem;color:var(--muted)}
+  .tline{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+  .tline:last-child{border-bottom:0}
+  .tline .tl-name{flex:1;font-size:.92rem}
+  .tline .tl-name small{display:block;color:var(--muted);font-size:.76rem}
+  .tline .cur{color:var(--muted);font-size:.9rem}
+  .tline input.num{font:inherit;font-size:.95rem;width:92px;text-align:right;padding:7px 9px;
+    border:1px solid var(--line);border-radius:8px;background:#fdfcf9;font-variant-numeric:tabular-nums}
+  .tline input.num:focus{outline:2px solid var(--teal-soft);border-color:var(--teal)}
+  .grand{display:flex;justify-content:space-between;align-items:baseline;padding:14px 2px 4px;margin-top:4px}
+  .grand .g-lab{font-weight:700;font-size:1rem}
+  .grand .g-val{font-weight:700;font-size:1.35rem;color:var(--teal);font-variant-numeric:tabular-nums}
+
+  .legend{font-size:.78rem;color:var(--muted);margin:2px 2px 18px;display:flex;gap:14px;flex-wrap:wrap}
+  .legend b{font-weight:700}
+  footer.fine{font-size:.76rem;color:var(--muted);text-align:center;margin-top:6px;line-height:1.6}
+  .hide{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎟️ Europe Trip — Cost Calculator</h1>
+    <p>Check the attractions you want. Costs are for <b>2 people</b>, approximate 2026 estimates. Recommended picks are pre-checked.</p>
+  </header>
+
+  <div class="summary">
+    <div class="sum-top">
+      <div>
+        <div class="lab" id="modeLabel">Attractions total</div>
+        <div class="per" id="modeSub">tickets &amp; paid sights only</div>
+      </div>
+      <div style="text-align:right">
+        <div class="val" id="bigTotal">$0</div>
+        <div class="per" id="bigPer">$0 per person</div>
+      </div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-meta"><span id="barLeft">Attractions vs $1,500 budget</span><span id="barRight">$0 / $1,500</span></div>
+      <div class="bar" id="bar"><i id="barFill"></i></div>
+    </div>
+    <div class="controls">
+      <button class="ctl primary" onclick="checkRecommended()">✓ Check recommended</button>
+      <button class="ctl" onclick="clearAll()">Clear all</button>
+      <label class="toggle">Full-trip estimate
+        <span class="switch"><input type="checkbox" id="fullToggle" onchange="toggleFull()"><span class="slider"></span></span>
+      </label>
+    </div>
+  </div>
+
+  <div id="cities"></div>
+
+  <div id="tripPanel" class="hide">
+    <h2>🧳 Rest of the trip</h2>
+    <p class="note">Editable estimates for 2 people across 28 nights. Tweak any number to match your real bookings.</p>
+    <div class="tline">
+      <div class="tl-name">🏨 Lodging <small>≈ nightly hotel estimates (London free)</small></div>
+      <span class="cur">$</span><input class="num" id="t_lodging" type="number" value="1875" oninput="recalc()">
+    </div>
+    <div class="tline">
+      <div class="tl-name">🍽️ Food &amp; drink <small>≈ $65/day for two</small></div>
+      <span class="cur">$</span><input class="num" id="t_food" type="number" value="1800" oninput="recalc()">
+    </div>
+    <div class="tline">
+      <div class="tl-name">🚆 Intercity: 7 trains + 2 EU flights <small>point-to-point advance fares</small></div>
+      <span class="cur">$</span><input class="num" id="t_intercity" type="number" value="830" oninput="recalc()">
+    </div>
+    <div class="tline">
+      <div class="tl-name">🚇 Local transit <small>metros, buses, day passes</small></div>
+      <span class="cur">$</span><input class="num" id="t_local" type="number" value="400" oninput="recalc()">
+    </div>
+    <div class="tline">
+      <div class="tl-name">✈️ Transatlantic flights <small>SFO⇄Europe — paid with US Bank points</small></div>
+      <span class="cur">$</span><input class="num" id="t_flights" type="number" value="0" oninput="recalc()">
+    </div>
+    <div class="grand">
+      <span class="g-lab">Grand total (everything checked + above)</span>
+      <span class="g-val" id="grandVal">$0</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b style="color:#0c5a53">✓ rec</b> = recommended</span>
+    <span><b style="color:#b45309">opt</b> = optional</span>
+    <span><b style="color:#b91c1c">skip</b> = I'd skip it</span>
+    <span>day trips marked ☀️</span>
+  </div>
+
+  <footer class="fine">
+    Prices are planning estimates for 2 people — confirm exact figures on official sites when booking.<br>
+    Recommended attractions total comes in well under the $1,500 earmark, leaving room for a few optionals.
+  </footer>
+</div>
+
+<script>
+const DATA = [
+  {city:"London", emoji:"🇬🇧", dates:"Aug 3–6 · lodging free", items:[
+    {n:"British Museum", c:0, t:"rec"},
+    {n:"National Gallery", c:0, t:"rec"},
+    {n:"National Portrait Gallery", c:0, t:"rec"},
+    {n:"Tate Britain (Freud &amp; Bacon)", c:0, t:"rec"},
+    {n:"Tate Modern", c:0, t:"rec"},
+    {n:"Tower of London", c:90, t:"rec"},
+    {n:"Sky Garden", c:0, t:"rec"},
+    {n:"Borough Market", c:0, t:"rec"},
+    {n:"Westminster Abbey", c:80, t:"opt"},
+    {n:"St Paul's Cathedral", c:65, t:"opt"},
+    {n:"Churchill War Rooms", c:70, t:"opt"},
+    {n:"☀️ Windsor Castle (day trip)", c:110, t:"opt"},
+    {n:"☀️ Stonehenge (day trip)", c:185, t:"skip"},
+  ]},
+  {city:"Nice / Cannes", emoji:"🇫🇷", dates:"Aug 7–9", items:[
+    {n:"Promenade des Anglais", c:0, t:"rec"},
+    {n:"Vieux Nice (old town)", c:0, t:"rec"},
+    {n:"Colline du Château (view)", c:0, t:"rec"},
+    {n:"Cours Saleya market", c:0, t:"rec"},
+    {n:"☀️ Monaco (train day trip)", c:20, t:"rec"},
+    {n:"☀️ Èze village (bus)", c:15, t:"rec"},
+    {n:"☀️ Cannes (train)", c:16, t:"rec"},
+    {n:"Marc Chagall Museum", c:30, t:"opt"},
+    {n:"Matisse Museum", c:25, t:"opt"},
+  ]},
+  {city:"Munich", emoji:"🇩🇪", dates:"Aug 10–11", items:[
+    {n:"Marienplatz &amp; Glockenspiel", c:0, t:"rec"},
+    {n:"English Garden (river surfers)", c:0, t:"rec"},
+    {n:"Hofbräuhaus (entry)", c:0, t:"rec"},
+    {n:"☀️ Neuschwanstein Castle (day trip)", c:130, t:"rec"},
+    {n:"Dachau Memorial", c:0, t:"opt"},
+    {n:"Residenz palace", c:20, t:"opt"},
+    {n:"Nymphenburg Palace", c:18, t:"opt"},
+    {n:"BMW Welt &amp; Museum", c:30, t:"opt"},
+  ]},
+  {city:"Vienna", emoji:"🇦🇹", dates:"Aug 12–14", items:[
+    {n:"Schönbrunn Palace", c:60, t:"rec"},
+    {n:"St Stephen's Cathedral (nave)", c:0, t:"rec"},
+    {n:"Kunsthistorisches Museum", c:45, t:"rec"},
+    {n:"Hofburg Palace", c:40, t:"rec"},
+    {n:"Naschmarkt", c:0, t:"rec"},
+    {n:"Café + Sachertorte", c:20, t:"rec"},
+    {n:"Belvedere (Klimt's Kiss)", c:45, t:"opt"},
+    {n:"☀️ Bratislava (day trip)", c:30, t:"opt"},
+  ]},
+  {city:"Budapest", emoji:"🇭🇺", dates:"Aug 15–17", items:[
+    {n:"Széchenyi Thermal Baths", c:50, t:"rec"},
+    {n:"Fisherman's Bastion &amp; Buda Castle", c:0, t:"rec"},
+    {n:"Parliament tour", c:60, t:"rec"},
+    {n:"St Stephen's Basilica", c:0, t:"rec"},
+    {n:"Ruin bars (Szimpla Kert)", c:0, t:"rec"},
+    {n:"Central Market Hall", c:0, t:"rec"},
+    {n:"Heroes' Square &amp; City Park", c:0, t:"rec"},
+    {n:"House of Terror Museum", c:25, t:"opt"},
+    {n:"Danube night cruise", c:40, t:"opt"},
+  ]},
+  {city:"Kraków", emoji:"🇵🇱", dates:"Aug 18–20", items:[
+    {n:"Main Market Square &amp; Cloth Hall", c:0, t:"rec"},
+    {n:"☀️ Auschwitz-Birkenau (day trip)", c:90, t:"rec"},
+    {n:"☀️ Wieliczka Salt Mine (day trip)", c:80, t:"rec"},
+    {n:"Wawel Castle &amp; Cathedral", c:30, t:"rec"},
+    {n:"Kazimierz (Jewish Quarter)", c:0, t:"rec"},
+    {n:"St Mary's Basilica", c:10, t:"rec"},
+    {n:"Schindler's Factory Museum", c:30, t:"opt"},
+    {n:"Rynek Underground Museum", c:25, t:"opt"},
+  ]},
+  {city:"Prague", emoji:"🇨🇿", dates:"Aug 21–22", items:[
+    {n:"Charles Bridge", c:0, t:"rec"},
+    {n:"Old Town Sq &amp; Astronomical Clock", c:0, t:"rec"},
+    {n:"Prague Castle &amp; St Vitus", c:30, t:"rec"},
+    {n:"Lesser Town (Malá Strana)", c:0, t:"rec"},
+    {n:"John Lennon Wall", c:0, t:"rec"},
+    {n:"Petřín Hill &amp; Tower", c:15, t:"opt"},
+    {n:"Jewish Quarter (Josefov)", c:40, t:"opt"},
+  ]},
+  {city:"Berlin", emoji:"🇩🇪", dates:"Aug 23–25", items:[
+    {n:"Brandenburg Gate", c:0, t:"rec"},
+    {n:"Reichstag Dome", c:0, t:"rec"},
+    {n:"East Side Gallery", c:0, t:"rec"},
+    {n:"Memorial to Murdered Jews", c:0, t:"rec"},
+    {n:"Topography of Terror", c:0, t:"rec"},
+    {n:"Berlin Wall Memorial", c:0, t:"rec"},
+    {n:"Museum Island (1 museum)", c:30, t:"rec"},
+    {n:"TV Tower (Fernsehturm)", c:55, t:"opt"},
+    {n:"Checkpoint Charlie (site)", c:0, t:"opt"},
+  ]},
+  {city:"Hamburg", emoji:"🇩🇪", dates:"Aug 26–27", items:[
+    {n:"Speicherstadt district", c:0, t:"rec"},
+    {n:"Miniatur Wunderland", c:45, t:"rec"},
+    {n:"Elbphilharmonie Plaza", c:0, t:"rec"},
+    {n:"Harbor boat tour", c:50, t:"rec"},
+    {n:"Planten un Blomen park", c:0, t:"rec"},
+    {n:"St Michael's Church tower", c:16, t:"opt"},
+    {n:"Reeperbahn (St Pauli)", c:0, t:"opt"},
+  ]},
+  {city:"Copenhagen", emoji:"🇩🇰", dates:"Aug 28–30", items:[
+    {n:"Nyhavn", c:0, t:"rec"},
+    {n:"Bike rental (explore city)", c:30, t:"rec"},
+    {n:"Strøget &amp; Torvehallerne market", c:0, t:"rec"},
+    {n:"Rosenborg Castle &amp; Crown Jewels", c:40, t:"rec"},
+    {n:"Tivoli Gardens (pick this OR Rosenborg)", c:95, t:"opt"},
+    {n:"The Little Mermaid", c:0, t:"opt"},
+    {n:"Christiania", c:0, t:"opt"},
+    {n:"☀️ Kronborg (Hamlet's) Castle", c:45, t:"opt"},
+  ]},
+];
+
+const BUDGET = 1500;
+const fmt = n => "$" + Math.round(n).toLocaleString();
+
+// build DOM
+const host = document.getElementById('cities');
+DATA.forEach((c, ci) => {
+  const card = document.createElement('div');
+  card.className = 'city';
+  const recCount = c.items.filter(i=>i.t==='rec').length;
+  card.innerHTML = `<h2 onclick="toggleCity(${ci})">
+      <span>${c.emoji}</span><span>${c.city}</span>
+      <span class="dates">${c.dates}<br><span class="sub" id="csub${ci}"></span></span>
+    </h2><div class="rows" id="rows${ci}"></div>`;
+  host.appendChild(card);
+  const rows = card.querySelector('#rows'+ci);
+  c.items.forEach((it, ii) => {
+    const checked = it.t === 'rec';
+    it._on = checked;
+    const badge = it.t==='rec' ? '<span class="badge b-rec">rec</span>'
+               : it.t==='opt' ? '<span class="badge b-opt">opt</span>'
+               : '<span class="badge b-skip">skip</span>';
+    const costHtml = it.c===0 ? '<span class="cost free">Free</span>' : `<span class="cost">${fmt(it.c)}</span>`;
+    const row = document.createElement('label');
+    row.className = 'row' + (checked?'':' off');
+    row.id = `row${ci}_${ii}`;
+    row.innerHTML = `<input type="checkbox" ${checked?'checked':''} onchange="onToggle(${ci},${ii},this.checked)">
+        <span class="name">${it.n}</span>${badge}${costHtml}`;
+    rows.appendChild(row);
+  });
+});
+
+function onToggle(ci,ii,on){
+  DATA[ci].items[ii]._on = on;
+  document.getElementById(`row${ci}_${ii}`).classList.toggle('off', !on);
+  recalc();
+}
+function toggleCity(ci){ document.getElementById('rows'+ci).classList.toggle('hide'); }
+
+function checkRecommended(){
+  DATA.forEach((c,ci)=>c.items.forEach((it,ii)=>{
+    const on = it.t==='rec'; it._on = on;
+    const box = document.querySelector(`#row${ci}_${ii} input`); if(box) box.checked = on;
+    document.getElementById(`row${ci}_${ii}`).classList.toggle('off', !on);
+  }));
+  recalc();
+}
+function clearAll(){
+  DATA.forEach((c,ci)=>c.items.forEach((it,ii)=>{
+    it._on = false;
+    const box = document.querySelector(`#row${ci}_${ii} input`); if(box) box.checked = false;
+    document.getElementById(`row${ci}_${ii}`).classList.add('off');
+  }));
+  recalc();
+}
+
+let fullMode = false;
+function toggleFull(){
+  fullMode = document.getElementById('fullToggle').checked;
+  document.getElementById('tripPanel').classList.toggle('hide', !fullMode);
+  document.getElementById('modeLabel').textContent = fullMode ? 'Full trip total' : 'Attractions total';
+  document.getElementById('modeSub').textContent = fullMode ? 'attractions + lodging + food + transport' : 'tickets & paid sights only';
+  recalc();
+}
+
+function recalc(){
+  let attr = 0;
+  DATA.forEach((c,ci)=>{
+    let csum = 0;
+    c.items.forEach(it=>{ if(it._on) csum += it.c; });
+    attr += csum;
+    const sub = document.getElementById('csub'+ci);
+    if(sub) sub.textContent = csum>0 ? fmt(csum) : '';
+  });
+
+  // budget bar (always tracks attractions)
+  const pct = Math.min(100, attr/BUDGET*100);
+  const fill = document.getElementById('barFill');
+  fill.style.width = pct + '%';
+  document.getElementById('bar').classList.toggle('over', attr>BUDGET);
+  document.getElementById('barRight').textContent = `${fmt(attr)} / ${fmt(BUDGET)}`;
+
+  let big = attr;
+  if(fullMode){
+    const extra = ['t_lodging','t_food','t_intercity','t_local','t_flights']
+      .reduce((s,id)=> s + (parseFloat(document.getElementById(id).value)||0), 0);
+    big = attr + extra;
+    document.getElementById('grandVal').textContent = fmt(big);
+  }
+  document.getElementById('bigTotal').textContent = fmt(big);
+  document.getElementById('bigPer').textContent = fmt(big/2) + ' per person';
+}
+
+recalc();
+</script>
+</body>
+</html>
